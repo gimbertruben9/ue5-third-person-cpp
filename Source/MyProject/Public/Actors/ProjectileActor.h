@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -8,36 +6,40 @@
 
 class USphereComponent;
 class UProjectileMovementComponent;
+class UStaticMeshComponent;
 
+/**
+ * Physical projectile actor with custom collision profile and hit notification.
+ */
 UCLASS()
 class MYPROJECT_API AProjectileActor : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
+
+public:
 	// Sets default values for this actor's properties
 	AProjectileActor();
 
 protected:
-	UPROPERTY(EditDefaultsOnly, Category = Components)
-	UStaticMeshComponent* ProjectileMeshComponent;
-
-	UPROPERTY(EditDefaultsOnly, Category = Components)
+	// Sphere collision component acting as the root
+	UPROPERTY(VisibleDefaultsOnly, Category = "Components")
 	USphereComponent* ProjectileCollisionComponent;
 
-	UPROPERTY(EditDefaultsOnly, Category = Components)
+	// Visual mesh representation of the projectile
+	UPROPERTY(VisibleDefaultsOnly, Category = "Components")
+	UStaticMeshComponent* ProjectileMeshComponent;
+
+	// Component handling automatic projectile movement
+	UPROPERTY(VisibleDefaultsOnly, Category = "Components")
 	UProjectileMovementComponent* ProjectileMovementComponent;
-
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
-	UFUNCTION()
-	void OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, 
-		UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	// Called when the actor is removed from the world
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	// Callback executed when the collision component hits a blocking object
+	UFUNCTION()
+	void OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 };
