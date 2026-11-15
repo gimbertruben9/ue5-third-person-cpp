@@ -13,7 +13,7 @@ class UInputAction;
 class USceneComponent;
 
 /**
- * Main player character class handling movement, camera control, and weapon firing.
+ * Main player character class handling movement, camera control, weapon firing, and object interaction.
  */
 UCLASS()
 class MYPROJECT_API APlayerCharacter : public ACharacter
@@ -57,6 +57,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* FireAction;
 
+	// Object interaction Input Action (Key E)
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* InteractionAction;
+
 	// Projectile class to spawn when firing
 	UPROPERTY(EditDefaultsOnly, Category = "ProjectileConfig")
 	TSubclassOf<AProjectileActor> ProjectileActorClass;
@@ -72,6 +76,9 @@ protected:
 
 	// Spawns a projectile from the FireSceneComponent
 	void Fire();
+
+	// Performs a short line trace to interact with IInteractuable objects
+	void Interact();
 
 public:
 	// Called every frame

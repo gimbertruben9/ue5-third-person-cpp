@@ -5,28 +5,29 @@
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "Engine/LocalPlayer.h"
+#include "Interfaces/Interactuable.h"
+#include "DrawDebugHelpers.h"
 
 // Sets default values
 APlayerCharacter::APlayerCharacter()
 {
-	// Set this character to call Tick() every frame. You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	// Configure the spring arm (camera boom)
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>("SpringArmComponent");
 	SpringArmComponent->SetupAttachment(RootComponent);
 	SpringArmComponent->TargetArmLength = 400.0f;
-	SpringArmComponent->bUsePawnControlRotation = true; // Rotate the arm based on the controller
+	SpringArmComponent->bUsePawnControlRotation = true;
 
 	// Configure the follow camera
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>("CameraComponent");
 	CameraComponent->SetupAttachment(SpringArmComponent);
-	CameraComponent->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+	CameraComponent->bUsePawnControlRotation = false;
 
 	// Configure the projectile spawn point
 	FireSceneComponent = CreateDefaultSubobject<USceneComponent>("FireSceneComponent");
 	FireSceneComponent->SetupAttachment(RootComponent);
-	FireSceneComponent->SetRelativeLocation(FVector(100.0f, 0.0f, 50.0f)); // Position in front of the character at chest height
+	FireSceneComponent->SetRelativeLocation(FVector(100.0f, 0.0f, 50.0f));
 }
 
 // Called when the game starts or when spawned
@@ -62,27 +63,26 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
 	EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
 
-	// Bind jump actions (start jumping on press, stop on release)
+	// Bind jump actions
 	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
-	// Bind weapon firing action
+	// Bind weapon firing and interaction actions
 	EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &APlayerCharacter::Fire);
+	EnhancedInputComponent->BindAction(InteractionAction, ETriggerEvent::Started, this, &APlayerCharacter::Interact);
 }
 
 void APlayerCharacter::Move(const FInputActionValue& InputActionValue)
 {
-	FVector2D MovementVector = InputActionValue.Get<FVector2D>();
+	const FVector2D MovementVector = InputActionValue.Get<FVector2D>();
 	if (!IsValid(Controller)) return;
 
-	// Calculate forward and right directions based on controller yaw rotation
 	const FRotator Rotation = Controller->GetControlRotation();
 	const FRotator YawRotation(0.0f, Rotation.Yaw, 0.0f);
 
 	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-	// Add movement in calculated directions
 	AddMovementInput(ForwardDirection, MovementVector.Y);
 	AddMovementInput(RightDirection, MovementVector.X);
 }
@@ -93,9 +93,7 @@ void APlayerCharacter::Look(const FInputActionValue& InputActionValue)
 
 	if (Controller != nullptr)
 	{
-		// Horizontal camera rotation (Yaw)
 		AddControllerYawInput(LookVector.X);
-		// Vertical camera rotation (Pitch)
 		AddControllerPitchInput(LookVector.Y);
 	}
 }
@@ -110,6 +108,32 @@ void APlayerCharacter::Fire()
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Owner = this;
 
-	// Spawn the projectile actor into the world
 	GetWorld()->SpawnActor<AProjectileActor>(ProjectileActorClass, SpawnPos, SpawnRot, SpawnInfo);
+}
+
+void APlayerCharacter::Interact()
+{
+	FVector StartLocation;
+	FRotator Rotation;
+	GetActorEyesViewPoint(StartLocation, Rotation);
+
+	const FVector EndLocation = StartLocation + (Rotation.Vector() * 200.0f);
+
+	FHitResult HitResult;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+
+	DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Yellow, false, 5.0f);
+
+	const bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_Visibility, Params);
+	if (bHit)
+	{
+		AActor* HitActor = HitResult.GetActor();
+		if (!IsValid(HitActor)) return;
+
+		if (HitActor->GetClass()->ImplementsInterface(UInteractuable::StaticClass()))
+		{
+			IInteractuable::Execute_Interact(HitActor, this);
+		}
+	}
 }
