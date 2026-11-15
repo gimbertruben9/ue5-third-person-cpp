@@ -2,6 +2,8 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/SceneComponent.h"
+#include "Components/HealthComponent.h"
+#include "Components/GunComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "Engine/LocalPlayer.h"
@@ -24,10 +26,16 @@ APlayerCharacter::APlayerCharacter()
 	CameraComponent->SetupAttachment(SpringArmComponent);
 	CameraComponent->bUsePawnControlRotation = false;
 
-	// Configure the projectile spawn point
+	// Configure the modular gun component attached to the root
+	GunComponent = CreateDefaultSubobject<UGunComponent>("GunComponent");
+	GunComponent->SetupAttachment(RootComponent);
+
+	// Attach the fire position scene component directly to the gun component
 	FireSceneComponent = CreateDefaultSubobject<USceneComponent>("FireSceneComponent");
-	FireSceneComponent->SetupAttachment(RootComponent);
-	FireSceneComponent->SetRelativeLocation(FVector(100.0f, 0.0f, 50.0f));
+	FireSceneComponent->SetupAttachment(GunComponent);
+
+	// Initialize player health component
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>("HealthComponent");
 }
 
 // Called when the game starts or when spawned
@@ -100,15 +108,21 @@ void APlayerCharacter::Look(const FInputActionValue& InputActionValue)
 
 void APlayerCharacter::Fire()
 {
-	if (!IsValid(FireSceneComponent) || !ProjectileActorClass) return;
+	if (IsValid(GunComponent))
+	{
+		GunComponent->Fire(FireSceneComponent);
+	}
 
-	const FVector SpawnPos = FireSceneComponent->GetComponentLocation();
-	const FRotator SpawnRot = FireSceneComponent->GetComponentRotation();
+	/*
+	FVector SpawnPos = FireSceneComponent->GetComponentLocation();
+	FRotator SpawnRot = FireSceneComponent->GetComponentRotation();
 
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Owner = this;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::DontSpawnIfColliding;
 
 	GetWorld()->SpawnActor<AProjectileActor>(ProjectileActorClass, SpawnPos, SpawnRot, SpawnInfo);
+	*/
 }
 
 void APlayerCharacter::Interact()

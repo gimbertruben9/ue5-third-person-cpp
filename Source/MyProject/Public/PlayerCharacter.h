@@ -11,9 +11,11 @@ class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 class USceneComponent;
+class UHealthComponent;
+class UGunComponent;
 
 /**
- * Main player character class handling movement, camera control, weapon firing, and object interaction.
+ * Main player character class handling movement, camera control, hitscan weapon firing, and object interaction.
  */
 UCLASS()
 class MYPROJECT_API APlayerCharacter : public ACharacter
@@ -33,9 +35,17 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	UCameraComponent* CameraComponent;
 
-	// Scene component used as the projectile spawn point
+	// Scene component used as the muzzle/raycast start point (attached to GunComponent)
 	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	USceneComponent* FireSceneComponent;
+
+	// Player health component
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	UHealthComponent* HealthComponent;
+
+	// Weapon component handling line trace shooting
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	UGunComponent* GunComponent;
 
 	// Input Mapping Context for character controls
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
@@ -61,7 +71,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* InteractionAction;
 
-	// Projectile class to spawn when firing
+	// Projectile class (kept for reference from PAC 1)
 	UPROPERTY(EditDefaultsOnly, Category = "ProjectileConfig")
 	TSubclassOf<AProjectileActor> ProjectileActorClass;
 
@@ -74,7 +84,7 @@ protected:
 	// Handles mouse look inputs (Yaw and Pitch)
 	void Look(const FInputActionValue& InputActionValue);
 
-	// Spawns a projectile from the FireSceneComponent
+	// Delegates weapon firing to the GunComponent using Line Tracing
 	void Fire();
 
 	// Performs a short line trace to interact with IInteractuable objects
